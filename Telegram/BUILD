@@ -974,6 +974,40 @@ sh_binary(
     srcs = [":GenerateAddAlternateIcons"],
 )
 
+# MARK: NAGRAM
+# MARK: NEXTGRAM — Rebuild the icon catalog and Info.plist entries so iOS can apply alternate icons.
+genrule(
+    name = "GenerateNagramFixComposerAlternateIcons",
+    srcs = [
+        "Telegram-iOS/NagramFixComposerAlternateIcons.sh",
+    ],
+    cmd_bash =
+"""
+    cat $(location Telegram-iOS/NagramFixComposerAlternateIcons.sh) >> $(location NagramFixComposerAlternateIcons.sh)
+""",
+    outs = [
+        "NagramFixComposerAlternateIcons.sh",
+    ],
+    executable = True,
+    visibility = [
+        "//visibility:public",
+    ]
+)
+
+sh_binary(
+    name = "NagramFixComposerAlternateIcons",
+    data = [
+        ":Icons",
+        ":NextgramBuild_icon",
+        ":Telegram_icon",
+        "//submodules/LegacyComponents:LegacyComponentsAssets",
+        "//submodules/PasswordSetupUI:PasswordSetupUIAssets",
+        "//submodules/TelegramUI:TelegramUIAssets",
+        "//submodules/TelegramUI/Components/Calls/CallScreen:Assets",
+    ],
+    srcs = [":GenerateNagramFixComposerAlternateIcons"],
+)
+
 plist_fragment(
     name = "TelegramUIInfoPlist",
     extension = "plist",
@@ -1842,6 +1876,8 @@ ios_application(
         ":LaunchScreen",
         #":DefaultAppIcon",
     ],
+    # MARK: NEXTGRAM
+    ipa_post_processor = ":NagramFixComposerAlternateIcons",
     frameworks = [
         ":MtProtoKitFramework",
         ":SwiftSignalKitFramework",

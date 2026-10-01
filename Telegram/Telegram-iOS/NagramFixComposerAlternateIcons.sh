@@ -13,82 +13,24 @@ if [ ! -d "${RUNFILES_ROOT}" ]; then
 	RUNFILES_ROOT="${0}.runfiles/__main__"
 fi
 
-XCODE_VERSION_OUTPUT="$(/usr/bin/xcodebuild -version)"
-XCODE_VERSION_LINE="${XCODE_VERSION_OUTPUT%%$'\n'*}"
-case "${XCODE_VERSION_LINE}" in
-	"Xcode "*)
-		XCODE_VERSION="${XCODE_VERSION_LINE#Xcode }"
-		;;
-	*)
-		echo "Unable to determine the active Xcode version: ${XCODE_VERSION_LINE}" >&2
-		exit 1
-		;;
-esac
-
-XCODE_MAJOR="${XCODE_VERSION%%.*}"
-if [[ ! "${XCODE_MAJOR}" =~ ^[0-9]+$ ]]; then
-	echo "Unable to determine the active Xcode major version from: ${XCODE_VERSION}" >&2
-	exit 1
-fi
-
 ACTOOL="$(/usr/bin/xcrun --find actool)"
 if [ ! -x "${ACTOOL}" ]; then
 	echo "Unable to find actool in the active Xcode toolchain: ${ACTOOL}" >&2
 	exit 1
 fi
 
-if (( XCODE_MAJOR == 26 )); then
-	NAGRAM_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/Nagram26.icon"
-	NAGRAM_BLOCK_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlock26.icon"
-	NAGRAM_BLOCK_BLACK_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlockBlack26.icon"
-	NAGRAM_BLOCK_BLUE_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlockBlue26.icon"
-	NAGRAM_BLOCK_NIELLO_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlockNiello26.icon"
-	NAGRAM_BLOCK_PURPLE_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlockPurple26.icon"
-	NAGRAM_CLASSIC_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramClassic26.icon"
-	NAGRAM_COLORFUL_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramColorful26.icon"
-	NAGRAM_CYAN_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramCyan26.icon"
-	NAGRAM_BLACK_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlack26.icon"
-elif (( XCODE_MAJOR >= 27 )); then
-	NAGRAM_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/Nagram.icon"
-	NAGRAM_BLOCK_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlock.icon"
-	NAGRAM_BLOCK_BLACK_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlockBlack.icon"
-	NAGRAM_BLOCK_BLUE_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlockBlue.icon"
-	NAGRAM_BLOCK_NIELLO_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlockNiello.icon"
-	NAGRAM_BLOCK_PURPLE_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlockPurple.icon"
-	NAGRAM_CLASSIC_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramClassic.icon"
-	NAGRAM_COLORFUL_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramColorful.icon"
-	NAGRAM_CYAN_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramCyan.icon"
-	NAGRAM_BLACK_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NagramBlack.icon"
-else
-	echo "Unsupported Xcode version for Nagram Icon Composer assets: ${XCODE_VERSION}" >&2
-	exit 1
-fi
+# MARK: NEXTGRAM — Nextgram's primary icon plus the Telegram Icon Composer alternate.
+NEXTGRAM_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/NextgramBuild.icon"
+TELEGRAM_ICON_SOURCE="${RUNFILES_ROOT}/Telegram/Telegram-iOS/Telegram.icon"
 
-MISSING_ICON_SOURCE=0
-for icon_source in \
-	"${NAGRAM_ICON_SOURCE}" \
-	"${NAGRAM_BLOCK_ICON_SOURCE}" \
-	"${NAGRAM_BLOCK_BLACK_ICON_SOURCE}" \
-	"${NAGRAM_BLOCK_BLUE_ICON_SOURCE}" \
-	"${NAGRAM_BLOCK_NIELLO_ICON_SOURCE}" \
-	"${NAGRAM_BLOCK_PURPLE_ICON_SOURCE}" \
-	"${NAGRAM_CLASSIC_ICON_SOURCE}" \
-	"${NAGRAM_COLORFUL_ICON_SOURCE}" \
-	"${NAGRAM_CYAN_ICON_SOURCE}" \
-	"${NAGRAM_BLACK_ICON_SOURCE}"; do
+for icon_source in "${NEXTGRAM_ICON_SOURCE}" "${TELEGRAM_ICON_SOURCE}"; do
 	if [ ! -f "${icon_source}/icon.json" ]; then
-		echo "Missing Nagram Icon Composer source for Xcode ${XCODE_MAJOR}: ${icon_source}" >&2
-		MISSING_ICON_SOURCE=1
+		echo "Missing Icon Composer source: ${icon_source}" >&2
+		exit 1
 	fi
 done
-if (( MISSING_ICON_SOURCE == 1 )); then
-	if (( XCODE_MAJOR == 26 )); then
-		echo "Add all required Xcode 26-compatible Nagram icon sources." >&2
-	fi
-	exit 1
-fi
 
-echo "Compiling Nagram icons with Xcode ${XCODE_VERSION}: ${ACTOOL}"
+echo "Compiling Nextgram icons: ${ACTOOL}"
 
 case "${APPLE_SDK_PLATFORM:-iPhoneOS}" in
 	*iPhoneSimulator*|*iphonesimulator*)
@@ -122,27 +64,10 @@ PASSWORD_XCASSETS="$(real_dir "${RUNFILES_ROOT}/submodules/PasswordSetupUI/Passw
 TELEGRAM_UI_XCASSETS="$(real_dir "${RUNFILES_ROOT}/submodules/TelegramUI/Images.xcassets")"
 CALL_SCREEN_XCASSETS="$(real_dir "${RUNFILES_ROOT}/submodules/TelegramUI/Components/Calls/CallScreen/CallScreenAssets.xcassets")"
 
-# Keep the compiled icon names stable even though their sources vary by Xcode.
-NAGRAM_ICON="${WORK_DIR}/Nagram.icon"
-NAGRAM_BLOCK_ICON="${WORK_DIR}/NagramBlock.icon"
-NAGRAM_BLOCK_BLACK_ICON="${WORK_DIR}/NagramBlockBlack.icon"
-NAGRAM_BLOCK_BLUE_ICON="${WORK_DIR}/NagramBlockBlue.icon"
-NAGRAM_BLOCK_NIELLO_ICON="${WORK_DIR}/NagramBlockNiello.icon"
-NAGRAM_BLOCK_PURPLE_ICON="${WORK_DIR}/NagramBlockPurple.icon"
-NAGRAM_CLASSIC_ICON="${WORK_DIR}/NagramClassic.icon"
-NAGRAM_COLORFUL_ICON="${WORK_DIR}/NagramColorful.icon"
-NAGRAM_CYAN_ICON="${WORK_DIR}/NagramCyan.icon"
-NAGRAM_BLACK_ICON="${WORK_DIR}/NagramBlack.icon"
-ditto "$(real_file_dir "${NAGRAM_ICON_SOURCE}")" "${NAGRAM_ICON}"
-ditto "$(real_file_dir "${NAGRAM_BLOCK_ICON_SOURCE}")" "${NAGRAM_BLOCK_ICON}"
-ditto "$(real_file_dir "${NAGRAM_BLOCK_BLACK_ICON_SOURCE}")" "${NAGRAM_BLOCK_BLACK_ICON}"
-ditto "$(real_file_dir "${NAGRAM_BLOCK_BLUE_ICON_SOURCE}")" "${NAGRAM_BLOCK_BLUE_ICON}"
-ditto "$(real_file_dir "${NAGRAM_BLOCK_NIELLO_ICON_SOURCE}")" "${NAGRAM_BLOCK_NIELLO_ICON}"
-ditto "$(real_file_dir "${NAGRAM_BLOCK_PURPLE_ICON_SOURCE}")" "${NAGRAM_BLOCK_PURPLE_ICON}"
-ditto "$(real_file_dir "${NAGRAM_CLASSIC_ICON_SOURCE}")" "${NAGRAM_CLASSIC_ICON}"
-ditto "$(real_file_dir "${NAGRAM_COLORFUL_ICON_SOURCE}")" "${NAGRAM_COLORFUL_ICON}"
-ditto "$(real_file_dir "${NAGRAM_CYAN_ICON_SOURCE}")" "${NAGRAM_CYAN_ICON}"
-ditto "$(real_file_dir "${NAGRAM_BLACK_ICON_SOURCE}")" "${NAGRAM_BLACK_ICON}"
+NEXTGRAM_ICON="${WORK_DIR}/NextgramBuild.icon"
+TELEGRAM_ICON="${WORK_DIR}/Telegram.icon"
+ditto "$(real_file_dir "${NEXTGRAM_ICON_SOURCE}")" "${NEXTGRAM_ICON}"
+ditto "$(real_file_dir "${TELEGRAM_ICON_SOURCE}")" "${TELEGRAM_ICON}"
 
 COMPILED_ICONS_DIR="${WORK_DIR}/out"
 mkdir -p "${COMPILED_ICONS_DIR}"
@@ -153,16 +78,8 @@ mkdir -p "${COMPILED_ICONS_DIR}"
 	--platform "${ACTOOL_PLATFORM}" \
 	--minimum-deployment-target 15.0 \
 	--compress-pngs \
-	--app-icon Nagram \
-	--alternate-app-icon NagramBlock \
-	--alternate-app-icon NagramBlockBlack \
-	--alternate-app-icon NagramBlockBlue \
-	--alternate-app-icon NagramBlockNiello \
-	--alternate-app-icon NagramBlockPurple \
-	--alternate-app-icon NagramClassic \
-	--alternate-app-icon NagramColorful \
-	--alternate-app-icon NagramCyan \
-	--alternate-app-icon NagramBlack \
+	--app-icon NextgramBuild \
+	--alternate-app-icon Telegram \
 	--target-device iphone \
 	--target-device ipad \
 	--output-partial-info-plist "${WORK_DIR}/xcassets-info.plist" \
@@ -171,16 +88,8 @@ mkdir -p "${COMPILED_ICONS_DIR}"
 	"${PASSWORD_XCASSETS}" \
 	"${TELEGRAM_UI_XCASSETS}" \
 	"${CALL_SCREEN_XCASSETS}" \
-	"${NAGRAM_ICON}" \
-	"${NAGRAM_BLOCK_ICON}" \
-	"${NAGRAM_BLOCK_BLACK_ICON}" \
-	"${NAGRAM_BLOCK_BLUE_ICON}" \
-	"${NAGRAM_BLOCK_NIELLO_ICON}" \
-	"${NAGRAM_BLOCK_PURPLE_ICON}" \
-	"${NAGRAM_CLASSIC_ICON}" \
-	"${NAGRAM_COLORFUL_ICON}" \
-	"${NAGRAM_CYAN_ICON}" \
-	"${NAGRAM_BLACK_ICON}"
+	"${NEXTGRAM_ICON}" \
+	"${TELEGRAM_ICON}"
 
 ditto "${COMPILED_ICONS_DIR}" "${APP_DIR}"
 
@@ -202,7 +111,7 @@ reset_primary_icon() {
 		/usr/libexec/PlistBuddy -c "Add ${root}:CFBundlePrimaryIcon:CFBundleIconFiles:${index} string ${icon_file}" "${INFO_PLIST}"
 		index=$((index + 1))
 	done
-	/usr/libexec/PlistBuddy -c "Add ${root}:CFBundlePrimaryIcon:CFBundleIconName string Nagram" "${INFO_PLIST}"
+	/usr/libexec/PlistBuddy -c "Add ${root}:CFBundlePrimaryIcon:CFBundleIconName string NextgramBuild" "${INFO_PLIST}"
 }
 
 set_icon_name() {
@@ -214,10 +123,8 @@ set_icon_name() {
 	/usr/libexec/PlistBuddy -c "Add ${root}:CFBundleAlternateIcons:${icon}:CFBundleIconName string ${icon}" "${INFO_PLIST}"
 }
 
-reset_primary_icon ":CFBundleIcons" Nagram60x60
-reset_primary_icon ":CFBundleIcons~ipad" Nagram60x60 Nagram76x76
+reset_primary_icon ":CFBundleIcons" NextgramBuild60x60
+reset_primary_icon ":CFBundleIcons~ipad" NextgramBuild60x60 NextgramBuild76x76
 
-for icon in NagramBlock NagramBlockBlack NagramBlockBlue NagramBlockNiello NagramBlockPurple NagramClassic NagramColorful NagramCyan NagramBlack; do
-	set_icon_name ":CFBundleIcons" "${icon}"
-	set_icon_name ":CFBundleIcons~ipad" "${icon}"
-done
+set_icon_name ":CFBundleIcons" Telegram
+set_icon_name ":CFBundleIcons~ipad" Telegram
